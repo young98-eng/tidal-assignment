@@ -1,4 +1,4 @@
-# Tidal — Crafted Essentials
+# Tidal - Crafted Essentials
 
 A fashion e-commerce storefront built with React + Vite, powered by the Shopify Storefront GraphQL API.
 
