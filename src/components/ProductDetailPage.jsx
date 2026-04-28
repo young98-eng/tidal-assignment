@@ -1,10 +1,45 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getProduct, formatPrice } from '../api/shopify.js';
+import { getProduct, getProducts, formatPrice } from '../api/shopify.js';
 import { colorToHex, isLightColor } from '../utils/colors.js';
 import { useCart } from '../context/CartContext.jsx';
-import ImageSlider from './ImageSlider.jsx';
 import QuantityPicker from './QuantityPicker.jsx';
+
+function RelatedProducts({ currentHandle, currentCategory }) {
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    getProducts(250).then(all => {
+      const related = all
+        .filter(p => p.handle !== currentHandle)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 4);
+      setProducts(related);
+    });
+  }, [currentHandle]);
+
+  if (!products.length) return null;
+
+  return (
+    <section className="related-section">
+      <h2 className="related-title">You May Also Like</h2>
+      <div className="related-grid">
+        {products.map(p => {
+          const img = p.featuredImage || p.images[0];
+          return (
+            <Link key={p.id} to={`/products/${p.handle}`} className="related-card">
+              <div className="related-img-wrap">
+                {img && <img src={img.url} alt={p.title} className="related-img" />}
+              </div>
+              <p className="related-name">{p.title}</p>
+              <p className="related-price">{formatPrice(p.price)}</p>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 export default function ProductDetailPage() {
   const { handle } = useParams();
@@ -18,6 +53,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     setLoading(true);
+    setAdded(false);
     getProduct(handle)
       .then(p => { setProduct(p); setSelectedVariant(p.variants[0] || null); })
       .catch(e => setError(e.message))
@@ -28,10 +64,9 @@ export default function ProductDetailPage() {
     <div className="detail-skeleton">
       <div className="skeleton detail-skeleton-img" />
       <div className="detail-skeleton-info">
-        <div className="skeleton" style={{ height: 32, width: '70%', marginBottom: 12 }} />
-        <div className="skeleton" style={{ height: 24, width: '30%', marginBottom: 24 }} />
-        <div className="skeleton" style={{ height: 16, marginBottom: 8 }} />
-        <div className="skeleton" style={{ height: 16, width: '80%' }} />
+        {[70, 30, 100, 100, 60].map((w, i) => (
+          <div key={i} className="skeleton" style={{ height: i === 0 ? 28 : 16, width: `${w}%`, marginBottom: 12 }} />
+        ))}
       </div>
     </div>
   );
@@ -44,12 +79,12 @@ export default function ProductDetailPage() {
     o => o.name.toLowerCase() === 'color'
   )?.value;
 
-  // All unique images including variant images
+  // All unique images + variant images
   const allImages = (() => {
-    const seen = new Set();
+    const seen = new Set(product.images.map(i => i.url));
     const imgs = [...product.images];
     product.variants.forEach(v => {
-      if (v.image && !seen.has(v.image.url) && !imgs.some(i => i.url === v.image.url)) {
+      if (v.image && !seen.has(v.image.url)) {
         seen.add(v.image.url);
         imgs.push(v.image);
       }
@@ -57,7 +92,7 @@ export default function ProductDetailPage() {
     return imgs;
   })();
 
-  // Bonus: filter by selected color
+  // Bonus: filter by color
   const visibleImages = (() => {
     if (!colorOption || !selectedColor) return allImages;
     const colorImgs = product.variants
@@ -71,36 +106,45 @@ export default function ProductDetailPage() {
     if (!selectedVariant) return;
     addItem(product, selectedVariant, qty);
     setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    setTimeout(() => setAdded(false), 1800);
   };
 
   return (
     <div className="product-detail-page">
-      <Link to="/" className="back-link">← Back to Products</Link>
+      <div className="detail-breadcrumb">
+        <Link to="/">All Products</Link>
+        <span>/</span>
+        <span>{product.title}</span>
+      </div>
 
       <div className="detail-layout">
-        <ImageSlider images={visibleImages} />
+        {/* Left: stacked images — scrolls */}
+        <div className="detail-images">
+          {visibleImages.map((img, i) => (
+            <div key={i} className="detail-image-item">
+              <img src={img.url} alt={img.altText || `${product.title} ${i + 1}`} />
+            </div>
+          ))}
+        </div>
 
+        {/* Right: sticky info panel */}
         <div className="detail-info">
           {product.productType && (
             <span className="detail-type">{product.productType}</span>
           )}
           <h1 className="detail-title">{product.title}</h1>
-
           <p className="detail-price">
             {formatPrice(selectedVariant?.price || product.price)}
             {product.hasMultiplePrices && !selectedVariant && (
-              <span className="price-note"> — price varies by option</span>
+              <span className="price-note"> — varies by option</span>
             )}
           </p>
 
-          {product.description && (
-            <p className="detail-description">{product.description}</p>
-          )}
-
           {colorOption && (
             <div className="option-group">
-              <span className="option-label">Color: <strong>{selectedColor}</strong></span>
+              <span className="option-label">
+                Colour — <strong>{selectedColor}</strong>
+              </span>
               <div className="swatches">
                 {colorOption.values.map(color => {
                   const hex = colorToHex(color);
@@ -108,8 +152,8 @@ export default function ProductDetailPage() {
                   return (
                     <button
                       key={color}
-                      className={`swatch${selectedColor === color ? ' active' : ''}${!hex ? ' swatch-text' : ''}`}
-                      style={hex ? { background: hex, borderColor: light ? '#ccc' : 'transparent' } : {}}
+                      className={`swatch${selectedColor === color ? ' active' : ''}`}
+                      style={hex ? { background: hex, borderColor: light ? '#ccc' : 'transparent' } : { background: '#ddd' }}
                       title={color}
                       onClick={() => {
                         const match = product.variants.find(v =>
@@ -117,9 +161,7 @@ export default function ProductDetailPage() {
                         );
                         if (match) setSelectedVariant(match);
                       }}
-                    >
-                      {!hex && <span className="swatch-label">{color.slice(0, 2)}</span>}
-                    </button>
+                    />
                   );
                 })}
               </div>
@@ -175,11 +217,23 @@ export default function ProductDetailPage() {
             <QuantityPicker value={qty} onChange={setQty} />
           </div>
 
-          <button className={`btn-primary detail-cta${added ? ' btn-added' : ''}`} onClick={handleAddToCart}>
+          <button
+            className={`btn-primary detail-cta${added ? ' btn-added' : ''}`}
+            onClick={handleAddToCart}
+          >
             {added ? '✓ Added to Cart' : 'Add to Cart'}
           </button>
+
+          {product.description && (
+            <details className="detail-desc-wrap">
+              <summary className="detail-desc-toggle">Description</summary>
+              <p className="detail-description">{product.description}</p>
+            </details>
+          )}
         </div>
       </div>
+
+      <RelatedProducts currentHandle={handle} />
     </div>
   );
 }
