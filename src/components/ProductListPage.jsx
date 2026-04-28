@@ -116,7 +116,16 @@ export default function ProductListPage() {
 
   const categories = useMemo(() => {
     const set = new Set(enriched.map(p => p._category));
-    return ['All', ...Array.from(set).sort()];
+    const ORDER = ['Tops', 'Bottoms', 'Shoes', 'Accessories', 'Other'];
+    const sorted = [...set].sort((a, b) => {
+      const ai = ORDER.indexOf(a);
+      const bi = ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+    return ['All', ...sorted];
   }, [enriched]);
 
   const genders = useMemo(() => {

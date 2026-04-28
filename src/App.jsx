@@ -1,5 +1,11 @@
 import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname]);
+  return null;
+}
 import { CartProvider, useCart } from './context/CartContext.jsx';
 import CartDrawer from './components/CartDrawer.jsx';
 import CartToast from './components/CartToast.jsx';
@@ -9,6 +15,7 @@ import ProductListPage from './components/ProductListPage.jsx';
 import ProductDetailPage from './components/ProductDetailPage.jsx';
 import CollectionsPage from './components/CollectionsPage.jsx';
 import AboutPage from './components/AboutPage.jsx';
+import InfoPage from './components/InfoPage.jsx';
 
 function Header() {
   const { count, setIsOpen } = useCart();
@@ -74,6 +81,7 @@ function PageTransition({ children }) {
 export default function App() {
   return (
     <CartProvider>
+      <ScrollToTop />
       <Header />
       <main className="site-main">
         <PageTransition>
@@ -82,6 +90,7 @@ export default function App() {
             <Route path="/products/:handle" element={<ProductDetailPage />} />
             <Route path="/collections" element={<CollectionsPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/info/:slug" element={<InfoPage />} />
           </Routes>
         </PageTransition>
       </main>

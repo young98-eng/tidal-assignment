@@ -6,74 +6,90 @@ const COLLECTIONS = [
   {
     key: 'Tops',
     label: 'Tops',
-    desc: 'T-shirts, hoodies, jackets & more',
-    tags: ['tops'],
+    desc: 'T-shirts, hoodies, sweaters & jackets',
+    regex: /shirt|top|blouse|sweater|hoodie|jacket|coat|vest|tee|polo|crewneck|puffer|half.?zip|workout/,
   },
   {
     key: 'Bottoms',
     label: 'Bottoms',
-    desc: 'Pants, shorts, jeans & skirts',
-    tags: ['bottoms'],
+    desc: 'Pants, shorts, jeans & leggings',
+    regex: /pant|jean|denim|trouser|short|skirt|legging|sweatpant/,
   },
   {
     key: 'Shoes',
     label: 'Shoes',
-    desc: 'Sneakers, slides & boots',
-    tags: ['shoes'],
+    desc: 'Sneakers, slides & everyday footwear',
+    regex: /shoe|sneaker|boot|sandal|heel|loafer|slipper|slide|runner/,
   },
   {
     key: 'Accessories',
     label: 'Accessories',
-    desc: 'Bags, sunglasses & essentials',
-    tags: ['accessories'],
+    desc: 'Bags, sunglasses & finishing touches',
+    regex: /bag|backpack|hat|cap|belt|sock|scarf|glove|watch|jewel|sunglass|sunni|frontpack|beanie/,
+    excludeRegex: /shoe|sneaker|boot|sandal|heel|loafer|slipper|slide|runner/,
   },
 ];
 
 function matchCollection(product, col) {
   const text = `${product.title} ${product.tags.join(' ')}`.toLowerCase();
-  return col.tags.some(t => text.includes(t));
+  if (col.excludeRegex && col.excludeRegex.test(text)) return false;
+  return col.regex.test(text);
 }
 
 export default function CollectionsPage() {
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    getProducts(250).then(setProducts);
+    getProducts(250).then(p => { setProducts(p); setLoading(false); });
   }, []);
 
   return (
     <div className="collections-page">
       <div className="collections-hero">
-        <span className="hero-eyebrow">Browse by category</span>
+        <span className="hero-eyebrow">Shop by category</span>
         <h1 className="collections-headline">Collections</h1>
+        <p className="collections-hero-sub">
+          From everyday essentials to statement pieces — find your fit.
+        </p>
       </div>
 
       <div className="collections-grid">
-        {COLLECTIONS.map(col => {
-          const match = products.find(p => matchCollection(p, col));
-          const img = match?.featuredImage || match?.images?.[0];
-          const count = products.filter(p => matchCollection(p, col)).length;
+        {COLLECTIONS.map((col, i) => {
+          const matched = products.filter(p => matchCollection(p, col));
+          const cover = matched[0];
+          const img = cover?.featuredImage || cover?.images?.[0];
+          const count = matched.length;
 
           return (
-            <button
+            <div
               key={col.key}
-              className="collection-card"
+              className={`collection-card${i === 0 ? ' collection-card-featured' : ''}`}
               onClick={() => navigate(`/?category=${col.key}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && navigate(`/?category=${col.key}`)}
             >
               <div className="collection-img-wrap">
-                {img
-                  ? <img src={img.url} alt={col.label} className="collection-img" />
-                  : <div className="collection-img-placeholder" />
-                }
+                {loading ? (
+                  <div className="collection-img-skeleton" />
+                ) : img ? (
+                  <img src={img.url} alt={col.label} className="collection-img" loading="lazy" />
+                ) : (
+                  <div className="collection-img-placeholder" />
+                )}
                 <div className="collection-overlay" />
               </div>
               <div className="collection-info">
+                <span className="collection-count-badge">
+                  {loading ? '—' : `${count} items`}
+                </span>
                 <h2 className="collection-name">{col.label}</h2>
                 <p className="collection-desc">{col.desc}</p>
-                <span className="collection-count">{count} items</span>
+                <span className="collection-cta">Shop now →</span>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

@@ -8,8 +8,8 @@ import { useWishlist } from '../utils/wishlist.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import RecentlyViewed from './RecentlyViewed.jsx';
 
-const LENS = 148;
-const ZOOM = 2.8;
+const LENS = 200;
+const ZOOM = 2.0;
 
 function ZoomImage({ src, alt }) {
   const ref = useRef(null);
@@ -145,11 +145,27 @@ export default function ProductDetailPage() {
 
   const visibleImages = (() => {
     if (!colorOption || !selectedColor) return allImages;
-    const colorImgs = product.variants
-      .filter(v => v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor))
-      .map(v => v.image)
-      .filter(Boolean);
-    return colorImgs.length ? colorImgs : allImages;
+
+    // URLs belonging to any variant (color-specific)
+    const allVariantUrls = new Set(product.variants.map(v => v.image?.url).filter(Boolean));
+    // URLs belonging to the SELECTED color's variants
+    const selectedColorUrls = new Set(
+      product.variants
+        .filter(v => v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor))
+        .map(v => v.image?.url)
+        .filter(Boolean)
+    );
+
+    // Keep product.images that are either generic (not tied to any variant) or match selected color
+    const base = product.images.filter(img => !allVariantUrls.has(img.url) || selectedColorUrls.has(img.url));
+
+    // Append unique selected-color variant images not already in base
+    const seen = new Set(base.map(i => i.url));
+    product.variants
+      .filter(v => v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor) && v.image && !seen.has(v.image.url))
+      .forEach(v => { seen.add(v.image.url); base.push(v.image); });
+
+    return base.length ? base : allImages;
   })();
 
   const handleAddToCart = () => {
