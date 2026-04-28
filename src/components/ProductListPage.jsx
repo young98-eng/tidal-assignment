@@ -37,7 +37,7 @@ export default function ProductListPage() {
   const [activeGender, setActiveGender] = useState('All');
 
   useEffect(() => {
-    getProducts(20)
+    getProducts(250)
       .then(setProducts)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -54,7 +54,7 @@ export default function ProductListPage() {
   }, [enriched]);
 
   const genders = useMemo(() => {
-    const set = new Set(enriched.map(p => p._gender));
+    const set = new Set(enriched.map(p => p._gender).filter(g => g !== 'Unisex'));
     return ['All', ...Array.from(set).sort()];
   }, [enriched]);
 

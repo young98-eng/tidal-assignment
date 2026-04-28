@@ -1,19 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ImageSlider({ images }) {
   const [active, setActive] = useState(0);
+
+  useEffect(() => { setActive(0); }, [images]);
 
   if (!images.length) return null;
 
   return (
     <div className="image-slider">
-      <div className="slider-main">
-        <img
-          src={images[active]?.url}
-          alt={images[active]?.altText || 'Product image'}
-          className="slider-main-img"
-        />
-      </div>
       {images.length > 1 && (
         <div className="slider-thumbs">
           {images.map((img, i) => (
@@ -27,6 +22,13 @@ export default function ImageSlider({ images }) {
           ))}
         </div>
       )}
+      <div className="slider-main">
+        <img
+          src={images[active]?.url}
+          alt={images[active]?.altText || 'Product image'}
+          className="slider-main-img"
+        />
+      </div>
     </div>
   );
 }
