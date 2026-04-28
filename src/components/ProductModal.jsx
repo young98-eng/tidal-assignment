@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { formatPrice } from '../api/shopify.js';
+import { colorToHex, isLightColor } from '../utils/colors.js';
+import { useCart } from '../context/CartContext.jsx';
 import QuantityPicker from './QuantityPicker.jsx';
 
 export default function ProductModal({ product, onClose }) {
+  const { addItem } = useCart();
   const [qty, setQty] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0] || null);
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     const handleKey = (e) => e.key === 'Escape' && onClose();
@@ -23,17 +27,33 @@ export default function ProductModal({ product, onClose }) {
     (o) => o.name.toLowerCase() === 'color'
   )?.value;
 
+  // Collect all images: product images + any unique variant images
+  const allImages = (() => {
+    const seen = new Set();
+    const imgs = [...product.images];
+    product.variants.forEach(v => {
+      if (v.image && !seen.has(v.image.url)) {
+        seen.add(v.image.url);
+        if (!imgs.some(i => i.url === v.image.url)) imgs.push(v.image);
+      }
+    });
+    return imgs;
+  })();
+
   const visibleImages = (() => {
-    if (!colorOption || !selectedColor) return product.images;
-    const colorImages = product.variants
-      .filter((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === 'color' && o.value === selectedColor))
-      .map((v) => v.image)
+    if (!colorOption || !selectedColor) return allImages;
+    const colorImgs = product.variants
+      .filter(v => v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor))
+      .map(v => v.image)
       .filter(Boolean);
-    return colorImages.length ? colorImages : product.images;
+    return colorImgs.length ? colorImgs : allImages;
   })();
 
   const handleAddToCart = () => {
-    alert(`Added ${qty}x "${product.title}" to cart!`);
+    if (!selectedVariant) return;
+    addItem(product, selectedVariant, qty);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
   };
 
   return (
@@ -50,26 +70,37 @@ export default function ProductModal({ product, onClose }) {
 
           <div className="modal-info">
             <h2 className="modal-title">{product.title}</h2>
-            <p className="modal-price">{formatPrice(selectedVariant?.price || product.price)}</p>
+            <p className="modal-price">
+              {formatPrice(selectedVariant?.price || product.price)}
+              {product.hasMultiplePrices && !selectedVariant && (
+                <span className="price-note"> and up</span>
+              )}
+            </p>
 
             {colorOption && (
               <div className="option-group">
                 <span className="option-label">Color: <strong>{selectedColor}</strong></span>
                 <div className="swatches">
-                  {colorOption.values.map((color) => (
-                    <button
-                      key={color}
-                      className={`swatch${selectedColor === color ? ' active' : ''}`}
-                      style={{ background: color.toLowerCase() }}
-                      title={color}
-                      onClick={() => {
-                        const match = product.variants.find((v) =>
-                          v.selectedOptions.some((o) => o.name.toLowerCase() === 'color' && o.value === color)
-                        );
-                        if (match) setSelectedVariant(match);
-                      }}
-                    />
-                  ))}
+                  {colorOption.values.map((color) => {
+                    const hex = colorToHex(color);
+                    const light = hex ? isLightColor(hex) : false;
+                    return (
+                      <button
+                        key={color}
+                        className={`swatch${selectedColor === color ? ' active' : ''}${!hex ? ' swatch-text' : ''}`}
+                        style={hex ? { background: hex, borderColor: light ? '#ccc' : 'transparent' } : {}}
+                        title={color}
+                        onClick={() => {
+                          const match = product.variants.find(v =>
+                            v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === color)
+                          );
+                          if (match) setSelectedVariant(match);
+                        }}
+                      >
+                        {!hex && <span className="swatch-label">{color.slice(0, 2)}</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -79,15 +110,13 @@ export default function ProductModal({ product, onClose }) {
                 <span className="option-label">Size</span>
                 <div className="size-options">
                   {sizeOption.values.map((size) => {
-                    const match = product.variants.find((v) =>
-                      v.selectedOptions.some((o) => o.name.toLowerCase() === 'size' && o.value === size) &&
-                      (!selectedColor ||
-                        v.selectedOptions.some((o) => o.name.toLowerCase() === 'color' && o.value === selectedColor))
+                    const match = product.variants.find(v =>
+                      v.selectedOptions.some(o => o.name.toLowerCase() === 'size' && o.value === size) &&
+                      (!selectedColor || v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor))
                     );
-                    const active =
-                      selectedVariant?.selectedOptions.some(
-                        (o) => o.name.toLowerCase() === 'size' && o.value === size
-                      );
+                    const active = selectedVariant?.selectedOptions.some(
+                      o => o.name.toLowerCase() === 'size' && o.value === size
+                    );
                     return (
                       <button
                         key={size}
@@ -108,25 +137,25 @@ export default function ProductModal({ product, onClose }) {
                 <select
                   className="variant-select"
                   onChange={(e) => {
-                    const v = product.variants.find((v) => v.id === e.target.value);
+                    const v = product.variants.find(v => v.id === e.target.value);
                     if (v) setSelectedVariant(v);
                   }}
                   value={selectedVariant?.id || ''}
                 >
-                  {product.variants.map((v) => (
+                  {product.variants.map(v => (
                     <option key={v.id} value={v.id}>{v.title}</option>
                   ))}
                 </select>
               </div>
             )}
 
-            <div className="modal-qty">
+            <div className="option-group">
               <span className="option-label">Quantity</span>
               <QuantityPicker value={qty} onChange={setQty} />
             </div>
 
-            <button className="btn-primary" onClick={handleAddToCart}>
-              Add to Cart
+            <button className={`btn-primary${added ? ' btn-added' : ''}`} onClick={handleAddToCart}>
+              {added ? '✓ Added to Cart' : 'Add to Cart'}
             </button>
           </div>
         </div>
