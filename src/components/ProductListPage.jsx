@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getProducts, formatPrice } from '../api/shopify.js';
 import { colorToHex } from '../utils/colors.js';
+import { resized } from '../utils/imageUrl.js';
 import ProductCard from './ProductCard.jsx';
 import ProductModal from './ProductModal.jsx';
 import SkeletonCard from './SkeletonCard.jsx';
@@ -35,7 +36,7 @@ function EditorialHero({ product }) {
   return (
     <section className="editorial-hero">
       <div className="hero-img-wrap">
-        {img && <img src={img.url} alt={product.title} className="hero-img" />}
+        {img && <img src={resized(img.url, 1200)} alt={product.title} className="hero-img" />}
         <div className="hero-overlay" />
       </div>
       <div className="hero-content">
@@ -64,7 +65,7 @@ function BentoRow({ products }) {
     <div className="bento-row fade-in" ref={fadeRef}>
       <Link to={`/products/${main.handle}`} className="bento-feature">
         <div className="bento-feature-img-wrap">
-          {mainImg && <img src={mainImg.url} alt={main.title} className="bento-img" loading="lazy" />}
+          {mainImg && <img src={resized(mainImg.url, 700)} alt={main.title} className="bento-img" loading="lazy" />}
         </div>
         <div className="bento-feature-info">
           <span className="bento-label">Featured</span>
@@ -78,7 +79,7 @@ function BentoRow({ products }) {
           return (
             <Link key={p.id} to={`/products/${p.handle}`} className="bento-small">
               <div className="bento-small-img-wrap">
-                {img && <img src={img.url} alt={p.title} className="bento-img" loading="lazy" />}
+                {img && <img src={resized(img.url, 700)} alt={p.title} className="bento-img" loading="lazy" />}
               </div>
               <p className="bento-small-title">{p.title}</p>
               <p className="bento-small-price">
@@ -146,12 +147,13 @@ export default function ProductListPage() {
 
   const [priceFilter, setPriceFilter] = useState(500);
   const effectiveMax = priceMax || 500;
+  const deferredPriceFilter = useDeferredValue(priceFilter);
 
   const filtered = useMemo(() => {
     let result = enriched.filter(p =>
       (activeCategory === 'All' || p._category === activeCategory) &&
       (activeGender === 'All' || p._gender === activeGender) &&
-      parseFloat(p.price.amount) <= priceFilter
+      parseFloat(p.price.amount) <= deferredPriceFilter
     );
 
     if (sortBy === 'price-asc') result = [...result].sort((a, b) => parseFloat(a.price.amount) - parseFloat(b.price.amount));
@@ -160,7 +162,7 @@ export default function ProductListPage() {
     else if (sortBy === 'name-za') result = [...result].sort((a, b) => b.title.localeCompare(a.title));
 
     return result;
-  }, [enriched, activeCategory, activeGender, sortBy, priceFilter]);
+  }, [enriched, activeCategory, activeGender, sortBy, deferredPriceFilter]);
 
   const isFiltered = activeCategory !== 'All' || activeGender !== 'All' || priceFilter < effectiveMax;
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatPrice } from '../api/shopify.js';
 import { colorToHex, isLightColor } from '../utils/colors.js';
 import { useCart } from '../context/CartContext.jsx';
+import { getColorImages } from '../utils/imageUrl.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import ImageSlider from './ImageSlider.jsx';
 
@@ -40,12 +41,8 @@ export default function ProductModal({ product, onClose }) {
 
   const visibleImages = (() => {
     if (!colorOption || !selectedColor) return allImages;
-    const colorImgs = product.variants
-      .filter(v => v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor))
-      .map(v => v.image)
-      .filter(Boolean);
-    const uniqueColor = colorImgs.filter((img, i, a) => a.findIndex(x => x.url === img.url) === i);
-    return uniqueColor.length ? uniqueColor : allImages;
+    const colorImgs = getColorImages(product, selectedColor);
+    return colorImgs.length ? colorImgs : allImages;
   })();
 
   const handleAddToCart = () => {

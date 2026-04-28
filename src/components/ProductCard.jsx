@@ -1,35 +1,62 @@
+import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { formatPrice } from '../api/shopify.js';
 import { useWishlist } from '../utils/wishlist.js';
+import { resized, getColorImages } from '../utils/imageUrl.js';
 
-export default function ProductCard({ product, onShowDetails }) {
-  const img = product.featuredImage || product.images?.[0];
-  const secondImg = product.images?.[1] || null;
+function ProductCard({ product, onShowDetails }) {
   const colorOption = product.options?.find(o => o.name.toLowerCase() === 'color');
+  const colors = colorOption?.values || [];
+  const hasMultiColors = colors.length > 1;
+  const [colorIdx, setColorIdx] = useState(0);
+  const activeColor = colors[colorIdx];
+
+  const colorImages = hasMultiColors
+    ? getColorImages(product, activeColor)
+    : (product.images || []);
+
+  const primaryImg = colorImages[0] || product.featuredImage || product.images?.[0];
+  const secondImg = colorImages[1] && colorImages[1].url !== primaryImg?.url ? colorImages[1] : null;
+
+  const cycleColor = (delta) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setColorIdx(i => (i + delta + colors.length) % colors.length);
+  };
+
   const { liked, toggle } = useWishlist(product.id);
 
   return (
     <article className="product-card">
-      <div className="card-image-wrap">
+      <div className={`card-image-wrap${secondImg ? ' has-hover' : ''}`}>
         <Link to={`/products/${product.handle}`} tabIndex={-1} aria-label={product.title}>
-          {img && (
+          {primaryImg && (
             <img
-              src={img.url}
-              alt={img.altText || product.title}
+              src={resized(primaryImg.url, 600)}
+              alt={primaryImg.altText || product.title}
               className="card-img card-img-primary"
               loading="lazy"
             />
           )}
           {secondImg && (
             <img
-              src={secondImg.url}
+              src={resized(secondImg.url, 600)}
               alt={`${product.title} — alternate view`}
               className="card-img card-img-secondary"
               loading="lazy"
             />
           )}
-          {!img && <div className="card-img-placeholder" aria-hidden="true" />}
+          {!primaryImg && <div className="card-img-placeholder" aria-hidden="true" />}
         </Link>
+
+        {hasMultiColors && (
+          <>
+            <button className="card-color-nav prev" onClick={cycleColor(-1)} aria-label="Previous color">‹</button>
+            <button className="card-color-nav next" onClick={cycleColor(1)} aria-label="Next color">›</button>
+            <span className="card-color-name">{activeColor}</span>
+          </>
+        )}
+
         <button
           className={`card-wishlist${liked ? ' liked' : ''}`}
           onClick={toggle}
@@ -53,9 +80,11 @@ export default function ProductCard({ product, onShowDetails }) {
           {product.hasMultiplePrices ? `From ${formatPrice(product.price)}` : formatPrice(product.price)}
         </p>
         {colorOption && (
-          <p className="card-color-count">{colorOption.values.length} colour{colorOption.values.length !== 1 ? 's' : ''}</p>
+          <p className="card-color-count">{colors.length} colour{colors.length !== 1 ? 's' : ''}</p>
         )}
       </div>
     </article>
   );
 }
+
+export default memo(ProductCard);

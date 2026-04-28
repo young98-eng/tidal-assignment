@@ -5,6 +5,7 @@ import { colorToHex, isLightColor } from '../utils/colors.js';
 import { useCart } from '../context/CartContext.jsx';
 import { addRecentlyViewed } from '../utils/recentlyViewed.js';
 import { useWishlist } from '../utils/wishlist.js';
+import { getColorImages } from '../utils/imageUrl.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import RecentlyViewed from './RecentlyViewed.jsx';
 
@@ -135,6 +136,7 @@ export default function ProductDetailPage() {
     setLoading(true);
     getProduct(handle)
       .then(p => {
+        if (!p) { setProduct(null); return; }
         setProduct(p);
         setSelectedVariant(p.variants[0] || null);
         addRecentlyViewed(p);
@@ -176,27 +178,8 @@ export default function ProductDetailPage() {
 
   const visibleImages = (() => {
     if (!colorOption || !selectedColor) return allImages;
-
-    // URLs belonging to any variant (color-specific)
-    const allVariantUrls = new Set(product.variants.map(v => v.image?.url).filter(Boolean));
-    // URLs belonging to the SELECTED color's variants
-    const selectedColorUrls = new Set(
-      product.variants
-        .filter(v => v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor))
-        .map(v => v.image?.url)
-        .filter(Boolean)
-    );
-
-    // Keep product.images that are either generic (not tied to any variant) or match selected color
-    const base = product.images.filter(img => !allVariantUrls.has(img.url) || selectedColorUrls.has(img.url));
-
-    // Append unique selected-color variant images not already in base
-    const seen = new Set(base.map(i => i.url));
-    product.variants
-      .filter(v => v.selectedOptions.some(o => o.name.toLowerCase() === 'color' && o.value === selectedColor) && v.image && !seen.has(v.image.url))
-      .forEach(v => { seen.add(v.image.url); base.push(v.image); });
-
-    return base.length ? base : allImages;
+    const colorImgs = getColorImages(product, selectedColor);
+    return colorImgs.length ? colorImgs : allImages;
   })();
 
   const handleAddToCart = () => {
