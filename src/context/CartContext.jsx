@@ -1,12 +1,21 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 
 const CartContext = createContext(null);
 
+function loadCart() {
+  try { return JSON.parse(localStorage.getItem('tidal-cart') || '[]'); }
+  catch { return []; }
+}
+
 export function CartProvider({ children }) {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(loadCart);
   const [isOpen, setIsOpen] = useState(false);
   const [toast, setToast] = useState(false);
   const toastTimer = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem('tidal-cart', JSON.stringify(items));
+  }, [items]);
 
   const addItem = useCallback((product, variant, qty) => {
     setItems(prev => {

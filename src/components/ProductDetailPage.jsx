@@ -8,6 +8,37 @@ import { useWishlist } from '../utils/wishlist.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import RecentlyViewed from './RecentlyViewed.jsx';
 
+function ShareButton({ title }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      } catch {}
+    }
+  };
+
+  return (
+    <button className="detail-share-btn" onClick={handleShare} aria-label="Share product">
+      {copied ? (
+        <span className="share-copied">Copied!</span>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+      )}
+    </button>
+  );
+}
+
 const LENS = 200;
 const ZOOM = 2.0;
 
@@ -208,13 +239,16 @@ export default function ProductDetailPage() {
             )}
             <div className="detail-title-row">
               <h1 className="detail-title">{product.title}</h1>
-              <button
-                className={`detail-wishlist${liked ? ' liked' : ''}`}
-                onClick={toggleWishlist}
-                aria-label={liked ? 'Remove from wishlist' : 'Save to wishlist'}
-              >
-                {liked ? '♥' : '♡'}
-              </button>
+              <div className="detail-title-actions">
+                <button
+                  className={`detail-wishlist${liked ? ' liked' : ''}`}
+                  onClick={toggleWishlist}
+                  aria-label={liked ? 'Remove from wishlist' : 'Save to wishlist'}
+                >
+                  {liked ? '♥' : '♡'}
+                </button>
+                <ShareButton title={product.title} />
+              </div>
             </div>
             <p className="detail-price">
               {formatPrice(selectedVariant?.price || product.price)}

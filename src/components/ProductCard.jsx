@@ -11,19 +11,37 @@ export default function ProductCard({ product, onShowDetails }) {
   return (
     <article className="product-card">
       <div className="card-image-wrap">
-        <Link to={`/products/${product.handle}`} tabIndex={-1}>
-          {img && <img src={img.url} alt={img.altText || product.title} className="card-img card-img-primary" />}
-          {secondImg && <img src={secondImg.url} alt={product.title} className="card-img card-img-secondary" />}
-          {!img && <div className="card-img-placeholder" />}
+        <Link to={`/products/${product.handle}`} tabIndex={-1} aria-label={product.title}>
+          {img && (
+            <img
+              src={img.url}
+              alt={img.altText || product.title}
+              className="card-img card-img-primary"
+              loading="lazy"
+            />
+          )}
+          {secondImg && (
+            <img
+              src={secondImg.url}
+              alt={`${product.title} — alternate view`}
+              className="card-img card-img-secondary"
+              loading="lazy"
+            />
+          )}
+          {!img && <div className="card-img-placeholder" aria-hidden="true" />}
         </Link>
         <button
           className={`card-wishlist${liked ? ' liked' : ''}`}
           onClick={toggle}
-          aria-label={liked ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-label={liked ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
         >
           {liked ? '♥' : '♡'}
         </button>
-        <button className="card-quick-view" onClick={onShowDetails}>
+        <button
+          className="card-quick-view"
+          onClick={onShowDetails}
+          aria-label={`Quick view ${product.title}`}
+        >
           Quick View
         </button>
       </div>
@@ -35,7 +53,7 @@ export default function ProductCard({ product, onShowDetails }) {
           {product.hasMultiplePrices ? `From ${formatPrice(product.price)}` : formatPrice(product.price)}
         </p>
         {colorOption && (
-          <p className="card-color-count">{colorOption.values.length} colours</p>
+          <p className="card-color-count">{colorOption.values.length} colour{colorOption.values.length !== 1 ? 's' : ''}</p>
         )}
       </div>
     </article>
