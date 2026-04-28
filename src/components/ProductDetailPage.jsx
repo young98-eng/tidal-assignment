@@ -8,28 +8,47 @@ import { useWishlist } from '../utils/wishlist.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import RecentlyViewed from './RecentlyViewed.jsx';
 
+const LENS = 148;
+const ZOOM = 2.8;
+
 function ZoomImage({ src, alt }) {
   const ref = useRef(null);
-  const [zoomed, setZoomed] = useState(false);
-  const [pos, setPos] = useState({ x: 50, y: 50 });
+  const [lens, setLens] = useState(null);
 
   const handleMouseMove = (e) => {
     const { left, top, width, height } = ref.current.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setPos({ x, y });
+    const x = e.clientX - left;
+    const y = e.clientY - top;
+    setLens({
+      lx: Math.max(LENS / 2, Math.min(x, width - LENS / 2)) - LENS / 2,
+      ly: Math.max(LENS / 2, Math.min(y, height - LENS / 2)) - LENS / 2,
+      bgX: -(x * ZOOM - LENS / 2),
+      bgY: -(y * ZOOM - LENS / 2),
+      bgW: width * ZOOM,
+      bgH: height * ZOOM,
+    });
   };
 
   return (
     <div
       ref={ref}
-      className={`detail-image-item zoom-wrap${zoomed ? ' zoomed' : ''}`}
-      onMouseEnter={() => setZoomed(true)}
-      onMouseLeave={() => setZoomed(false)}
+      className="detail-image-item zoom-container"
       onMouseMove={handleMouseMove}
-      style={zoomed ? { '--zoom-x': `${pos.x}%`, '--zoom-y': `${pos.y}%` } : {}}
+      onMouseLeave={() => setLens(null)}
     >
       <img src={src} alt={alt} />
+      {lens && (
+        <div
+          className="zoom-lens"
+          style={{
+            left: lens.lx,
+            top: lens.ly,
+            backgroundImage: `url(${src})`,
+            backgroundSize: `${lens.bgW}px ${lens.bgH}px`,
+            backgroundPosition: `${lens.bgX}px ${lens.bgY}px`,
+          }}
+        />
+      )}
     </div>
   );
 }
