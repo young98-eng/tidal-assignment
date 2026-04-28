@@ -54,13 +54,14 @@ const PRODUCTS_QUERY = `
 `;
 
 function normalize(node) {
+  const rawType = node.productType || '';
   return {
     id: node.id,
     title: node.title,
     handle: node.handle,
     description: node.description,
-    productType: node.productType || '',
-    tags: node.tags || [],
+    productType: rawType.includes('=') ? '' : rawType,
+    tags: (node.tags || []).filter(t => !t.includes('=')),
     price: node.priceRange.minVariantPrice,
     maxPrice: node.priceRange.maxVariantPrice,
     hasMultiplePrices:

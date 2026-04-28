@@ -1,15 +1,19 @@
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { CartProvider, useCart } from './context/CartContext.jsx';
 import CartDrawer from './components/CartDrawer.jsx';
 import CartToast from './components/CartToast.jsx';
 import Footer from './components/Footer.jsx';
+import SearchOverlay from './components/SearchOverlay.jsx';
 import ProductListPage from './components/ProductListPage.jsx';
 import ProductDetailPage from './components/ProductDetailPage.jsx';
+import CollectionsPage from './components/CollectionsPage.jsx';
+import AboutPage from './components/AboutPage.jsx';
 
 function Header() {
   const { count, setIsOpen } = useCart();
   const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -22,17 +26,24 @@ function Header() {
       <div className="announcement-bar">Free shipping on orders over $75 · Free returns · Secure checkout</div>
       <header className={`site-header${scrolled ? ' scrolled' : ''}`}>
         <nav className="header-nav">
-          <Link to="/">Shop</Link>
-          <Link to="/">Collections</Link>
-          <Link to="/">About</Link>
+          <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-active' : ''}>Shop</NavLink>
+          <NavLink to="/collections" className={({ isActive }) => isActive ? 'nav-active' : ''}>Collections</NavLink>
+          <NavLink to="/about" className={({ isActive }) => isActive ? 'nav-active' : ''}>About</NavLink>
         </nav>
+
         <Link to="/" className="site-logo">
           <span className="logo-wordmark">Tidal</span>
           <span className="logo-sub">Est. 2026 · Crafted Essentials</span>
         </Link>
+
         <div className="header-actions">
+          <button className="search-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </button>
           <button className="cart-btn" onClick={() => setIsOpen(true)} aria-label="Open cart">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 01-8 0"/>
@@ -41,6 +52,8 @@ function Header() {
           </button>
         </div>
       </header>
+
+      {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
     </>
   );
 }
@@ -67,6 +80,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<ProductListPage />} />
             <Route path="/products/:handle" element={<ProductDetailPage />} />
+            <Route path="/collections" element={<CollectionsPage />} />
+            <Route path="/about" element={<AboutPage />} />
           </Routes>
         </PageTransition>
       </main>

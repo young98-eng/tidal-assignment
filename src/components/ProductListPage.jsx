@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getProducts, formatPrice } from '../api/shopify.js';
 import { colorToHex } from '../utils/colors.js';
 import ProductCard from './ProductCard.jsx';
@@ -97,7 +97,8 @@ export default function ProductListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [searchParams] = useSearchParams();
+  const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || 'All');
   const [activeGender, setActiveGender] = useState('All');
   const gridFadeRef = useScrollFadeIn();
 
