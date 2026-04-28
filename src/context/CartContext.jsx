@@ -1,10 +1,12 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [toast, setToast] = useState(false);
+  const toastTimer = useRef(null);
 
   const addItem = useCallback((product, variant, qty) => {
     setItems(prev => {
@@ -24,7 +26,9 @@ export function CartProvider({ children }) {
         qty,
       }];
     });
-    setIsOpen(true);
+    clearTimeout(toastTimer.current);
+    setToast(true);
+    toastTimer.current = setTimeout(() => setToast(false), 2400);
   }, []);
 
   const removeItem = useCallback((variantId) => {
@@ -41,7 +45,7 @@ export function CartProvider({ children }) {
   const subtotal = items.reduce((s, i) => s + parseFloat(i.price.amount) * i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, count, subtotal, currency, isOpen, setIsOpen }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, count, subtotal, currency, isOpen, setIsOpen, toast }}>
       {children}
     </CartContext.Provider>
   );
